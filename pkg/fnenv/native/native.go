@@ -3,15 +3,52 @@ package native
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/fission/fission-workflows/pkg/types"
 	"github.com/golang/protobuf/ptypes"
+
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	Name = "native"
 )
+
+var (
+	fnActive = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "fnenv",
+		Subsystem: "native",
+		Name:      "functions_active",
+		Help:      "Number of function executions that are currently active",
+	})
+
+	fnCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "fnenv",
+		Subsystem: "native",
+		Name:      "functions_execution_total",
+		Help:      "Total number of function executions",
+	})
+
+	fnResolved = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "fnenv",
+		Subsystem: "native",
+		Name:      "functions_resolved_total",
+		Help:      "Total number of function resolved",
+	})
+
+	fnExecTime = prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace: "fnenv",
+		Subsystem: "native",
+		Name:      "function_execution_time_milliseconds",
+		Help:      "Execution time summary of the internal functions",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(fnActive, fnResolved, fnExecTime, fnCount)
+}
 
 // An InternalFunction is a function that will be executed in the same process as the invoker.
 type InternalFunction interface {
@@ -34,13 +71,18 @@ func NewFunctionEnv(fns map[string]InternalFunction) *FunctionEnv {
 }
 
 func (fe *FunctionEnv) Invoke(spec *types.TaskInvocationSpec) (*types.TaskInvocationStatus, error) {
+	timeStart := time.Now()
+	defer fnExecTime.Observe(float64(time.Since(timeStart)))
+
 	fnId := spec.FnRef.RuntimeId
 	fn, ok := fe.fns[fnId]
 	if !ok {
 		return nil, fmt.Errorf("could not resolve internal function '%s'", fnId)
 	}
-
+	fnActive.Inc()
 	out, err := fn.Invoke(spec)
+	fnActive.Dec()
+	fnCount.Inc()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"fnId": fnId,
@@ -60,6 +102,7 @@ func (fe *FunctionEnv) Invoke(spec *types.TaskInvocationSpec) (*types.TaskInvoca
 }
 
 func (fe *FunctionEnv) Resolve(fnName string) (string, error) {
+	fnResolved.Inc()
 	_, ok := fe.fns[fnName]
 	if !ok {
 		return "", fmt.Errorf("could not resolve internal function '%s'", fnName)

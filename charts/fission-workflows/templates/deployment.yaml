@@ -1,6 +1,33 @@
+# TODO move env to container spec
+# TODO add prometheus annotations
+
+# Workflow Engine is deployed as just another Fission environment.
+apiVersion: fission.io/v1
+kind: Environment
+metadata:
+  name: workflow
+  namespace: default
+spec:
+  version: 2
+  runtime:
+    image: "{{ .Values.envImage }}:{{.Values.tag}}"
+    env:
+    - name: ES_NATS_URL
+      value: "nats://{{ .Values.nats.authToken }}@{{ .Values.nats.location }}.{{ .Values.fnenv.fission.ns }}:{{ .Values.nats.port }}"
+    - name: ES_NATS_CLUSTER
+      value: "{{ .Values.nats.cluster }}"
+    - name: FNENV_FISSION_CONTROLLER
+      value: "{{ .Values.fnenv.fission.controller }}.{{ .Values.fnenv.fission.ns }}"
+    - name: FNENV_FISSION_EXECUTOR
+      value: "{{ .Values.fnenv.fission.executor }}.{{ .Values.fnenv.fission.ns }}"
+  builder:
+    image: "{{ .Values.buildEnvImage }}:{{.Values.tag}}"
+    command: "defaultBuild"
+  allowedFunctionsPerContainer: infinite
+
 # Workflow Apiserver is an optional component that allows users to query the workflows API through the Fission apiserver.
 {{ if .Values.apiserver }}
-apiVersion: extensions/v1beta1
+apiVersion: app/v1
 kind: Deployment
 metadata:
   name: workflows-apiserver
@@ -25,6 +52,7 @@ spec:
           "--api-workflow-invocation",
           "--api-workflow",
           "--api-admin",
+          "--metrics",
         ]
         env:
         - name: ES_NATS_URL
@@ -36,44 +64,4 @@ spec:
         - name: FNENV_FISSION_CONTROLLER
           value: "{{ .Values.fnenv.fission.controller }}.{{ .Values.fnenv.fission.ns }}"
 ---
-# TODO remove this service once all functionality is accessible through Fission
-apiVersion: v1
-kind: Service
-metadata:
-  name: workflows-apiserver
-  namespace: {{ .Release.Namespace }}
-  labels:
-    svc: workflows-apiserver
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-spec:
-  type: ClusterIP
-  ports:
-  - port: 80
-    targetPort: 8080
-  selector:
-    svc: workflows-apiserver
----
 {{ end }}
-# Workflow Engine is deployed as just another Fission environment.
-apiVersion: fission.io/v1
-kind: Environment
-metadata:
-  name: workflow
-  namespace: default
-spec:
-  version: 2
-  runtime:
-    image: "{{ .Values.envImage }}:{{.Values.tag}}"
-    env:
-    - name: ES_NATS_URL
-      value: "nats://{{ .Values.nats.authToken }}@{{ .Values.nats.location }}.{{ .Values.fnenv.fission.ns }}:{{ .Values.nats.port }}"
-    - name: ES_NATS_CLUSTER
-      value: "{{ .Values.nats.cluster }}"
-    - name: FNENV_FISSION_CONTROLLER
-      value: "{{ .Values.fnenv.fission.controller }}.{{ .Values.fnenv.fission.ns }}"
-    - name: FNENV_FISSION_EXECUTOR
-      value: "{{ .Values.fnenv.fission.executor }}.{{ .Values.fnenv.fission.ns }}"
-  builder:
-    image: "{{ .Values.buildEnvImage }}:{{.Values.tag}}"
-    command: "defaultBuild"
-  allowedFunctionsPerContainer: infinite

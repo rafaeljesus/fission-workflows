@@ -1,5 +1,5 @@
-hash: 07d3556d9858a81553d499abb269f5f24aa7546d925c371f4892454c1000e5db
-updated: 2018-02-27T15:03:14.338445+01:00
+hash: 0a789de35cb6e8b6f9bd786794465bce273931e399d1c53c009665ec5e6374b8
+updated: 2018-02-20T13:05:32.5643+01:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -15,6 +15,10 @@ imports:
   - autorest/adal
   - autorest/azure
   - autorest/date
+- name: github.com/beorn7/perks
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  subpackages:
+  - quantile
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
@@ -121,6 +125,10 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/nats-io/go-nats
@@ -134,6 +142,29 @@ imports:
   - pb
 - name: github.com/nats-io/nuid
   version: 289cccf02c178dc782430d534e3c1f5b72af807f
+- name: github.com/prometheus/client_golang
+  version: c5b7fccd204277076155f10851dad72b76a49317
+  subpackages:
+  - api
+  - prometheus
+  - prometheus/promhttp
+  - prometheus/push
+- name: github.com/prometheus/client_model
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: 89604d197083d4781071d3c65855d24ecfb0a563
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 282c8707aa210456a825798969cc27edda34992a
+  subpackages:
+  - internal/util
+  - nfs
+  - xfs
 - name: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
