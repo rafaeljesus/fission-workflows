@@ -27,8 +27,6 @@ import (
 	"github.com/fission/fission-workflows/pkg/util/labels"
 	"github.com/fission/fission-workflows/pkg/util/pubsub"
 	"github.com/fission/fission-workflows/pkg/version"
-	controllerc "github.com/fission/fission/controller/client"
-	executor "github.com/fission/fission/executor/client"
 	"github.com/gorilla/handlers"
 	grpcruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	log "github.com/sirupsen/logrus"
@@ -103,8 +101,8 @@ func Run(ctx context.Context, opts *Options) error {
 			"controller": opts.Fission.ControllerAddr,
 			"executor":   opts.Fission.ExecutorAddress,
 		}).Infof("Using Function Runtime: Fission")
-		runtimes["fission"] = setupFissionFunctionRuntime(opts.Fission.ExecutorAddress)
-		resolvers["fission"] = setupFissionFunctionResolver(opts.Fission.ControllerAddr)
+		runtimes["fission"] = fission.SetupRuntime(opts.Fission.ExecutorAddress)
+		resolvers["fission"] = fission.SetupResolver(opts.Fission.ControllerAddr)
 	}
 
 	// Controller
@@ -202,16 +200,6 @@ func getWorkflowInvocationCache(ctx context.Context, eventPub pubsub.Publisher) 
 
 func setupInternalFunctionRuntime() *native.FunctionEnv {
 	return native.NewFunctionEnv(builtin.DefaultBuiltinFunctions)
-}
-
-func setupFissionFunctionRuntime(executorAddr string) *fission.FunctionEnv {
-	client := executor.MakeClient(executorAddr)
-	return fission.NewFunctionEnv(client)
-}
-
-func setupFissionFunctionResolver(controllerAddr string) *fission.Resolver {
-	controllerClient := controllerc.MakeClient(controllerAddr)
-	return fission.NewResolver(controllerClient)
 }
 
 func setupNatsEventStoreClient(url string, cluster string, clientId string) *nats.EventStore {

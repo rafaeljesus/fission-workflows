@@ -212,3 +212,11 @@ type TaskInstance struct {
 	// Invocation is nil if not yet invoked
 	Invocation *TaskInvocation
 }
+
+func NewTaskInvocationSpec(invocationId string, taskId string, fnRef FnRef) *TaskInvocationSpec {
+	return &TaskInvocationSpec{
+		FnRef:        &fnRef,
+		TaskId:       taskId,
+		InvocationId: invocationId,
+	}
+}

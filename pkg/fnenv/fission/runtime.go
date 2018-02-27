@@ -24,7 +24,7 @@ var log = logrus.WithField("component", "fnenv.fission")
 // to invoke Fission functions.
 type FunctionEnv struct {
 	executor         *executor.Client
-	timedExecService *TimedExecPool
+	timedExecService *timedExecPool
 }
 
 const (
