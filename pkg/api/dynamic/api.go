@@ -8,6 +8,8 @@ import (
 	"github.com/fission/fission-workflows/pkg/types/typedvalues"
 	"github.com/fission/fission-workflows/pkg/types/validate"
 	"github.com/gogo/protobuf/proto"
+	"github.com/mitchellh/hashstructure"
+	"github.com/sirupsen/logrus"
 )
 
 // Api that servers mainly as a function.Runtime wrapper that deals with the higher-level logic workflow-related logic.
@@ -23,21 +25,24 @@ func NewApi(wfApi *workflow.Api, wfiApi *invocation.Api) *Api {
 	}
 }
 
-func (ap *Api) AddDynamicTask(invocationId string, parentId string, taskSpec *types.TaskSpec) error {
+func (ap *Api) AddDynamicTask(invocationId string, parentTaskId string, taskSpec *types.TaskSpec) error {
 
 	// Transform TaskSpec into WorkflowSpec
-	// TODO dedup workflows
-	// TODO indicate relation with workflow somehow?
 	wfSpec := &types.WorkflowSpec{
 		OutputTask: "main",
 		Tasks: map[string]*types.TaskSpec{
 			"main": taskSpec,
 		},
-		Internal:   true, // TODO take into account
+		Dynamic:    true, // FUTURE: use internal as indicator to cleanup and hide these generated workflows
 		ApiVersion: types.WorkflowApiVersion,
 	}
-
-	return ap.addDynamicWorkflow(invocationId, parentId, wfSpec, taskSpec)
+	hash, err := hashstructure.Hash(wfSpec, nil)
+	if err == nil {
+		wfSpec.ForceId = string(hash)
+	} else {
+		logrus.Errorf("Failed to generate hash of workflow; defaulting to random id: %v", err)
+	}
+	return ap.addDynamicWorkflow(invocationId, parentTaskId, wfSpec, taskSpec)
 }
 
 func (ap *Api) AddDynamicWorkflow(invocationId string, parentTaskId string, workflowSpec *types.WorkflowSpec) error {
@@ -55,7 +60,7 @@ func (ap *Api) addDynamicWorkflow(invocationId string, parentTaskId string, wfSp
 		return err
 	}
 	wfId, err := ap.wfApi.Create(wfSpec)
-	if err != nil {
+	if err != nil && err != workflow.ErrWorkflowAlreadyExists {
 		return err
 	}
 

@@ -15,6 +15,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
+var (
+	ErrWorkflowAlreadyExists = errors.New("workflow already exists")
+)
+
 type Api struct {
 	es       fes.Backend
 	resolver fnenv.Resolver
@@ -24,7 +28,6 @@ func NewApi(esClient fes.Backend, resolver fnenv.Resolver) *Api {
 	return &Api{esClient, resolver}
 }
 
-// TODO check if id already exists
 func (wa *Api) Create(workflow *types.WorkflowSpec) (string, error) {
 	err := validate.WorkflowSpec(workflow)
 	if err != nil {
@@ -36,6 +39,14 @@ func (wa *Api) Create(workflow *types.WorkflowSpec) (string, error) {
 	if len(id) == 0 {
 		id = fmt.Sprintf("wf-%s", util.Uid())
 	}
+	key := aggregates.NewWorkflowAggregate(id)
+
+	// Check if the workflow already exists
+	// TODO improve performance (e.g. caching, exists() option)
+	e, _ := wa.es.Get(key)
+	if e != nil && len(e) != 0 {
+		return id, ErrWorkflowAlreadyExists
+	}
 
 	data, err := proto.Marshal(workflow)
 	if err != nil {
@@ -44,7 +55,7 @@ func (wa *Api) Create(workflow *types.WorkflowSpec) (string, error) {
 
 	err = wa.es.Append(&fes.Event{
 		Type:      events.Workflow_WORKFLOW_CREATED.String(),
-		Aggregate: aggregates.NewWorkflowAggregate(id),
+		Aggregate: key,
 		Timestamp: ptypes.TimestampNow(),
 		Data:      data,
 	})
